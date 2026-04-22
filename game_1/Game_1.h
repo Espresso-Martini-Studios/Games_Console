@@ -4,13 +4,12 @@
 #include "Menu.h"
 
 // Game state enum for switch-case format before main loop
-/*
+
 typedef enum {
-    START_MENU,
+    GAME_MENU,
     PLAYING,
     ENDED
 } Game_State;
-*/
 
 /**
  * @brief Game 1 - Student can implement their own game here
@@ -26,9 +25,9 @@ typedef enum {
  */
 
 void Game1_Init(void); // sets up game when opened
-//void Game1_Update(void) // updates game states (score, position, etc.)
-//void Game1_Render(void) // renders updates onto LCD buffer then refreshes
+void Game1_Update(void); // updates game states (score, position, etc.)
+void Game1_Render(void); // renders updates onto LCD buffer then refreshes
 
- MenuState Game1_Run(void);
+MenuState Game1_Run(void);
 
 #endif // GAME_1_H
