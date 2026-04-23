@@ -2,6 +2,7 @@
 #define GAME_1_H
 
 #include "Menu.h"
+#include "Game1_funcs.h"
 
 // Game state enum for switch-case format before main loop
 
