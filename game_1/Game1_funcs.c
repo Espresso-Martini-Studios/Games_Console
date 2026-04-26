@@ -7,13 +7,13 @@
 #include "Joystick.h"
 #include "LCD.h"
 
-void player_init(Player* player, int16_t init_x, int16_t init_y, int16_t init_width, int16_t init_height, int16_t init_progress, int16_t init_score) {
-    player->x = init_x;
-    player->y = init_y;
-    player->width = init_width;
-    player->height = init_height;
-    player->progress = init_progress;
-    player->score = init_score;
+void player_init(Player* player, int16_t x, int16_t y, int16_t width, int16_t height, int16_t progress, int16_t score) {
+    player->x = x;
+    player->y = y;
+    player->width = width;
+    player->height = height;
+    player->progress = progress;
+    player->score = score;
 }
 
 void player_draw(Player *player) {

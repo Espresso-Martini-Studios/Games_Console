@@ -1,4 +1,5 @@
 #include "Game_1.h"
+#include "Game1_funcs.h"
 #include "InputHandler.h"
 #include "Menu.h"
 #include "LCD.h"
@@ -22,23 +23,18 @@ extern Buzzer_cfg_t buzzer_cfg; // Buzzer control
 #define COLOUR_BACKGROUND 3 // green
 #define COLOUR_WRITING 0 // black
 
-// game variables
+// enums
 static Game_State game_state = PLAYING;
-static uint32_t frame_start = 0; // for HAL
-
+// structs
+static Player player;
+// const
 static const int row_height = SCREEN_HEIGHT / VISIBLE_ROWS;
 static const int column_width = SCREEN_WIDTH / VISIBLE_COLUMNS;
-// can't make row positions constant while using for loop to assign (unless use an function to assign)
-// last dimension indicating 0 or 1 for x or y point
+// variables
+static uint32_t frame_start = 0; // for HAL
+// can't make row positions constant while using for loop to assign, though they won't change
 static int row_midpoint[VISIBLE_ROWS];
 static int column_midpoint[VISIBLE_COLUMNS];
-static int player_row = 0;
-static int player_y = 0;
-static int player_column = 0;
-static int player_x = 0;
-static int score = 0;
-static int player_level = 0; // "level" just refers to how far along player is
-// score==level unless moved backwards
 
 MenuState Game1_Run(void) {
     Game1_Init();
@@ -73,8 +69,6 @@ MenuState Game1_Run(void) {
 /* Game Initialisation */
 void Game1_Init(void) {
     game_state = PLAYING;
-    score = 0;
-    player_level = 0;
     // assign position coordinates
     for (int i = 0; i < VISIBLE_ROWS; i++) {
         row_midpoint[i] = (row_height / 2) + (i * row_height);
@@ -82,12 +76,8 @@ void Game1_Init(void) {
     for (int j = 0; j < VISIBLE_COLUMNS; j++) {
         column_midpoint[j] = (column_width / 2) + (j * column_width);
     }
-    // start in middle
-    player_column = (VISIBLE_COLUMNS + 1) % 2;
-    player_x = column_midpoint[player_column];
-    // player in second row always
-    player_row = 1;
-    player_y = row_midpoint[player_row];
+    // player
+    player_init(PLayer* player, int16_t 0, int16_t 0, int16_t 0, int16_t 0, int16_t 0, int16_t 0);
 }
 
 /* Game Update */
@@ -113,7 +103,10 @@ void Game1_Render(void) {
     LCD_printString("Return to Menu", 40, 235, COLOUR_WRITING, 1);
         
     LCD_Refresh(&cfg0);
-        
+    
+    // main game
+    player.draw(Player* player);
+
     // Frame timing - wait for remainder of frame time
     uint32_t frame_time = HAL_GetTick() - frame_start;
     if (frame_time < GAME1_FRAME_TIME_MS) {

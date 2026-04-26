@@ -27,7 +27,7 @@ typedef struct {
     int16_t score;
 } Player;
 
-void player_init(Player* player, int16_t init_x, int16_t init_y, int16_t init_width, int16_t init_height, int16_t init_progress, int16_t init_score);
+void player_init(Player* player, int16_t x, int16_t y, int16_t width, int16_t height, int16_t progress, int16_t score);
 
 //void player_update(Player* player, UserInput input);
 
