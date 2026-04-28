@@ -12,11 +12,15 @@
 #include "Utils.h"
 #include "Joystick.h"
 
+/* Movement section */
+//Direction get_direction(void)
+
 /* Player section */
 
 typedef struct {
-    // [central???] position for pixels *************************** need to test
     // need to use int16_t for LCD functions to work properly
+    int16_t row;
+    int16_t column;
     int16_t x;
     int16_t y;
     // player dimensions
@@ -27,9 +31,9 @@ typedef struct {
     int16_t score;
 } Player;
 
-void player_init(Player* player, int16_t x, int16_t y, int16_t width, int16_t height, int16_t progress, int16_t score);
+void player_init(Player* player, int16_t row, int16_t column, int16_t x, int16_t y, int16_t width, int16_t height, int16_t progress, int16_t score);
 
-//void player_update(Player* player, UserInput input);
+void player_update(Player* player, UserInput input);
 
 void player_draw(Player* player);
 

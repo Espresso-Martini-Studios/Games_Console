@@ -50,12 +50,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Buzzer/Buzzer.c
     ${CMAKE_SOURCE_DIR}/PWM/PWM.c
     
+    # additional files need to be added here
     # Menu system (shared)
     ${CMAKE_SOURCE_DIR}/shared/Menu.c
     ${CMAKE_SOURCE_DIR}/shared/InputHandler.c
     
     # Game implementations (placeholder - students implement these)
     ${CMAKE_SOURCE_DIR}/game_1/Game_1.c
+    ${CMAKE_SOURCE_DIR}/game_1/Game1_funcs.c
     ${CMAKE_SOURCE_DIR}/game_2/Game_2.c
     ${CMAKE_SOURCE_DIR}/game_3/Game_3.c
 )

@@ -1,11 +1,13 @@
 #include "Game_1.h"
 #include "Game1_funcs.h"
 #include "InputHandler.h"
+#include "Joystick.h"
 #include "Menu.h"
 #include "LCD.h"
 #include "PWM.h"
 #include "Buzzer.h"
 #include "stm32l4xx_hal.h"
+#include <stdint.h>
 #include <stdio.h>
 
 extern ST7789V2_cfg_t cfg0;
@@ -14,27 +16,42 @@ extern Buzzer_cfg_t buzzer_cfg; // Buzzer control
 
 // Frame rate for this game (in milliseconds)
 #define GAME1_FRAME_TIME_MS 30  // ~33 FPS
+
 // Grid organisation - rows and columns are those visible to player (fixed)
-#define VISIBLE_ROWS 10
+/* about the LCD  coordinates
+(0,0) is the top right corner
+(240,240) is the bottom left
+grid will be 
+        column 1    column 2 ...    column 10
+row 1
+row 2
+...
+row 10
+*/
+#define VISIBLE_ROWS 8
 #define VISIBLE_COLUMNS 9 // odd number so can start in middle
 #define SCREEN_WIDTH  240
 #define SCREEN_HEIGHT 240
+
 // Colours
 #define COLOUR_BACKGROUND 3 // green
 #define COLOUR_WRITING 0 // black
 
 // enums
-static Game_State game_state = PLAYING;
+static Game_State game_state;
+static Direction move_direction = CENTRE;
 // structs
 static Player player;
 // const
-static const int row_height = SCREEN_HEIGHT / VISIBLE_ROWS;
-static const int column_width = SCREEN_WIDTH / VISIBLE_COLUMNS;
+static const uint16_t row_height = SCREEN_HEIGHT / VISIBLE_ROWS;
+static const uint16_t column_width = SCREEN_WIDTH / VISIBLE_COLUMNS;
+static const uint16_t init_row = VISIBLE_ROWS - 2;
+static const uint16_t init_column = VISIBLE_COLUMNS / 2;
 // variables
 static uint32_t frame_start = 0; // for HAL
 // can't make row positions constant while using for loop to assign, though they won't change
-static int row_midpoint[VISIBLE_ROWS];
-static int column_midpoint[VISIBLE_COLUMNS];
+static uint16_t row_midpoint[VISIBLE_ROWS];
+static uint16_t column_midpoint[VISIBLE_COLUMNS];
 
 MenuState Game1_Run(void) {
     Game1_Init();
@@ -69,15 +86,15 @@ MenuState Game1_Run(void) {
 /* Game Initialisation */
 void Game1_Init(void) {
     game_state = PLAYING;
-    // assign position coordinates
-    for (int i = 0; i < VISIBLE_ROWS; i++) {
+    // assign position coordinates - see grid organisation at top
+    for (int i = 0; i < VISIBLE_ROWS; i++) { // y coordinate of middle of rows
         row_midpoint[i] = (row_height / 2) + (i * row_height);
     }
-    for (int j = 0; j < VISIBLE_COLUMNS; j++) {
-        column_midpoint[j] = (column_width / 2) + (j * column_width);
+    for (int i = 0; i < VISIBLE_COLUMNS; i++) { // x coordinate of middle of columns
+        column_midpoint[i] = (column_width / 2) + (i * column_width);
     }
     // player
-    player_init(PLayer* player, int16_t 0, int16_t 0, int16_t 0, int16_t 0, int16_t 0, int16_t 0);
+    player_init(&player, init_row, init_column, column_midpoint[init_column], row_midpoint[init_row], 0, 0, 0, 0);
 }
 
 /* Game Update */
@@ -101,11 +118,19 @@ void Game1_Render(void) {
     // instructions
     LCD_printString("Press BT3 to", 40, 220, COLOUR_WRITING, 1);
     LCD_printString("Return to Menu", 40, 235, COLOUR_WRITING, 1);
-        
-    LCD_Refresh(&cfg0);
     
     // main game
-    player.draw(Player* player);
+    player_draw(&player);
+    // grid test ******************************
+/*
+    for (int i = 0; i < sizeof(column_midpoint)/sizeof(column_midpoint[0]); i++) {
+        for (int j = 0; j < sizeof(row_midpoint)/sizeof(row_midpoint[0]); j++) {
+            LCD_Draw_Circle(column_midpoint[i], row_midpoint[j], 4, 1, 1);
+            printf("Circle coordinate: %u, %u", column_midpoint[i], row_midpoint[j]);
+        }
+    }
+*/
+    LCD_Refresh(&cfg0);
 
     // Frame timing - wait for remainder of frame time
     uint32_t frame_time = HAL_GetTick() - frame_start;
