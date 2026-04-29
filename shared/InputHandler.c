@@ -96,13 +96,19 @@ Direction burstMove_getDirection(void) {
         return current_direction;
         // this means if we go to the centre in between moves, we can go as fast as we like
     }
+    // always return current direction if it has changed
+    else if ((current_direction != last_direction)) {
+        last_direction = current_direction;
+        last_joystick_interrupt = current_joystick_interrupt;
+        return current_direction;
+    }
     // if not in centre, only return input once the JOYSTICK_DELAY time has passed
     else if ((current_direction == last_direction) && ((current_joystick_interrupt - last_joystick_interrupt) > JOYSTICK_DELAY)) {
         last_direction = current_direction;
         last_joystick_interrupt = current_joystick_interrupt;
         return current_direction;
     }
-    // time hasn't passed, return CENTRE so the player doesn't move and nothing reset
+    // time hasn't passed and input is the same, return CENTRE so the player doesn't move and nothing reset
     else {
         return CENTRE;
     }

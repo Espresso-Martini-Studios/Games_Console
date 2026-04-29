@@ -63,7 +63,7 @@ void player_init(Player* player);
 
 void player_coordinate (Player* player);
 
-void player_update(Player* player);
+void player_update(Player* player, Direction player_direction);
 
 void player_draw(Player* player);
 

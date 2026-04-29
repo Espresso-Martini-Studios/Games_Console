@@ -65,7 +65,8 @@ void Game1_Init(void) {
 void Game1_Update(void) {
     frame_start = HAL_GetTick();
     Input_Read();
-        
+    player_direction = burstMove_getDirection();
+    player_update(&player, player_direction);
     // Check if button was pressed to return to menu 
     if (current_input.btn3_pressed) {
         game_state = ENDED;

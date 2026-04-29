@@ -49,8 +49,7 @@ void player_coordinate (Player* player) {
     player->y = grid.row[player->row];
 }
 
-void player_update(Player* player) {
-    player_direction = burstMove_getDirection();
+void player_update(Player* player, Direction player_direction) {
     switch (player_direction) {
         case E:
             player->column++;
@@ -61,10 +60,10 @@ void player_update(Player* player) {
         default:
             break;    
     }
-    //player_coordinate(player);
+    player_coordinate(player);
 }
 
-void player_draw(Player *player) {
+void player_draw(Player* player) {
     // just draw a circle for now - will make sprites later
     LCD_Draw_Circle(player->x, player->y, 4, 1, 1);
     return;
