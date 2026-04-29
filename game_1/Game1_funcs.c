@@ -51,7 +51,6 @@ void player_coordinate (Player* player) {
 
 void player_update(Player* player, Direction player_direction) {
     switch (player_direction) {
-       
         case N: // forwards
             // check not moved backwards (prevent score increase with back and forth movement)
             if (player->progress == player->score) {
@@ -60,13 +59,19 @@ void player_update(Player* player, Direction player_direction) {
             player->progress++;
             break;
         case S: // backwards
-            player->progress--;
+            if (player->progress != 0) { // stop progress going negative
+                player->progress--;
+            }
             break;
         case E: // right
-            player->column++;
+            if (player->column < (VISIBLE_COLUMNS - 1)) { // bounds check
+                player->column++;
+            }
             break;
         case W: // left
-            player->column--;
+            if (player->column > 0) { // bounds check
+                player->column--;
+            }
             break;
         default:
             break;    
