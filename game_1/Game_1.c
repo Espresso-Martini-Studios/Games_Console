@@ -80,9 +80,10 @@ void Game1_Render(void) {
     // title
     LCD_printString("CATTER", 60, 10, COLOUR_WRITING, 3);
         
-    // instructions
-    LCD_printString("Press BT3 to", 40, 220, COLOUR_WRITING, 1);
-    LCD_printString("Return to Menu", 40, 235, COLOUR_WRITING, 1);
+    // score
+    char score_text[20];
+    snprintf(score_text, sizeof(score_text), "Score: %u", player.score);
+    LCD_printString(score_text, 40, 220, COLOUR_WRITING, 1);
     
     // main game
     player_draw(&player);

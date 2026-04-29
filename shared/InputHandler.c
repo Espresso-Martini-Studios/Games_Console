@@ -2,8 +2,8 @@
 #include "Joystick.h"
 #include "main.h"
 
-#define BTN_DEBOUNCING_DELAY 200
-#define JOYSTICK_DELAY 300
+#define BTN_DEBOUNCING_DELAY 500
+#define JOYSTICK_DELAY 400
 
 /* Button input */
 

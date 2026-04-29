@@ -51,10 +51,21 @@ void player_coordinate (Player* player) {
 
 void player_update(Player* player, Direction player_direction) {
     switch (player_direction) {
-        case E:
+       
+        case N: // forwards
+            // check not moved backwards (prevent score increase with back and forth movement)
+            if (player->progress == player->score) {
+                player->score++;
+            }
+            player->progress++;
+            break;
+        case S: // backwards
+            player->progress--;
+            break;
+        case E: // right
             player->column++;
             break;
-        case W:
+        case W: // left
             player->column--;
             break;
         default:
