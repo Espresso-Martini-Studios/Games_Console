@@ -1,5 +1,11 @@
 #include "InputHandler.h"
+#include "Joystick.h"
 #include "main.h"
+
+#define BTN_DEBOUNCING_DELAY 500
+#define JOYSTICK_DELAY 400
+
+/* Button input */
 
 // Global input state
 InputState current_input = {0};
@@ -34,11 +40,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     static uint32_t last_btn2_interrupt = 0;
     static uint32_t last_btn3_interrupt = 0;
     uint32_t current_time = HAL_GetTick();
-    
+
     // Handle BT2
     if (GPIO_Pin == BTN2_Pin) {
         // Software debouncing (200ms)
-        if ((current_time - last_btn2_interrupt) > 200) {
+        if ((current_time - last_btn2_interrupt) > BTN_DEBOUNCING_DELAY) {
             last_btn2_interrupt = current_time;
             
             // Toggle LED to indicate button press
@@ -52,7 +58,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     // Handle BT3 (joystick button)
     if (GPIO_Pin == BTN3_Pin) {
         // Software debouncing (200ms)
-        if ((current_time - last_btn3_interrupt) > 200) {
+        if ((current_time - last_btn3_interrupt) > BTN_DEBOUNCING_DELAY) {
             last_btn3_interrupt = current_time;
             
             // Toggle LED to indicate button press
@@ -61,5 +67,43 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
             // Set flag indicating button was pressed
             btn3_raw_press = 1;
         }
+    }
+}
+
+/* Joystick input with delay (burst movement) for Game_1 */
+
+extern Joystick_cfg_t joystick_cfg;  // configuration
+extern Joystick_t joystick_data;     // data
+// need to compare current and last directions
+Direction last_direction = CENTRE;
+Direction current_direction = CENTRE;
+// need to compare times the joystick has been pressed
+static uint32_t last_joystick_interrupt = 0;
+static uint32_t current_joystick_interrupt = 0;
+
+// allow "holding down" the joystick in one direction and moves forward in bursts (defined by JOYSTICK_DELAY)
+// also want to move faster than this if the joystick to returns to centre in between moves
+// I will call this "burst movement"
+Direction burstMove_getDirection(void) {
+    current_joystick_interrupt = HAL_GetTick();
+    // read current joystick input
+    Joystick_Read(&joystick_cfg, &joystick_data);
+    current_direction = joystick_data.direction;
+    // always return current input if in centre
+    if (current_direction == CENTRE) {
+        last_direction = current_direction;
+        last_joystick_interrupt = current_joystick_interrupt;
+        return current_direction;
+        // this means if we go to the centre in between moves, we can go as fast as we like
+    }
+    // if the direction is new, or the delay has passed, return current direction
+    else if ((current_direction != last_direction) || ((current_joystick_interrupt - last_joystick_interrupt) > JOYSTICK_DELAY)) {
+        last_direction = current_direction;
+        last_joystick_interrupt = current_joystick_interrupt;
+        return current_direction;
+    }
+    // time hasn't passed and input is the same, return CENTRE so the player doesn't move and nothing reset
+    else {
+        return CENTRE;
     }
 }

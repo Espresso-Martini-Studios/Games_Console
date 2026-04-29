@@ -2,6 +2,8 @@
 #define INPUT_HANDLER_H
 
 #include <stdint.h>
+#include "Joystick.h"
+#include "main.h"
 
 // ========================================
 // INPUT SYSTEM - Simple State
@@ -32,5 +34,7 @@ void Input_Init(void);
  * Called once per frame by main loop before Update
  */
 void Input_Read(void);
+
+Direction burstMove_getDirection(void);
 
 #endif // INPUT_HANDLER_H
