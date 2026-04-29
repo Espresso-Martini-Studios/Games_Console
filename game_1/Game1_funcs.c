@@ -4,25 +4,65 @@
 **/
 
 #include "Game1_funcs.h"
+#include "InputHandler.h"
 #include "Joystick.h"
 #include "LCD.h"
 #include <stdint.h>
 
 /*
-Player
+Grid organisation (see h file)
 */
-void player_init(Player* player, int16_t row, int16_t column, int16_t x, int16_t y, int16_t width, int16_t height, int16_t progress, int16_t score) {
-    player->row = row;
-    player->column = column;
-    player->x = x;
-    player->y = y;
-    player->width = width;
-    player->height = height;
-    player->progress = progress;
-    player->score = score;
+
+static const uint16_t row_height = SCREEN_HEIGHT / VISIBLE_ROWS;
+static const uint16_t column_width = SCREEN_WIDTH / VISIBLE_COLUMNS;
+
+Grid grid; // midpoints on grid
+
+void grid_init(Grid* grid) {
+    for (int i = 0; i < VISIBLE_ROWS; i++) { // y coordinate of middle of rows
+        grid->row[i] = (row_height / 2) + (i * row_height);
+    }
+    for (int i = 0; i < VISIBLE_COLUMNS; i++) { // x coordinate of middle of columns
+        grid->column[i] = (column_width / 2) + (i * column_width);
+    }
 }
 
-//void player_update(Player* player)
+/*
+Player
+*/
+
+Direction player_direction = CENTRE;
+
+// initialise all player settings according to the game's needs
+void player_init(Player* player) {
+    player->row = VISIBLE_ROWS - 2;
+    player->column = VISIBLE_COLUMNS / 2;
+    player_coordinate(player); // set x and y from row and column
+    player->width = 0;
+    player->height = 0;
+    player->progress = 0;
+    player->score = 0;
+}
+
+void player_coordinate (Player* player) {
+    player->x = grid.column[player->column];
+    player->y = grid.row[player->row];
+}
+
+void player_update(Player* player) {
+    player_direction = burstMove_getDirection();
+    switch (player_direction) {
+        case E:
+            player->column++;
+            break;
+        case W:
+            player->column--;
+            break;
+        default:
+            break;    
+    }
+    //player_coordinate(player);
+}
 
 void player_draw(Player *player) {
     // just draw a circle for now - will make sprites later

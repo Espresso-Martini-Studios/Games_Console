@@ -14,44 +14,14 @@ extern ST7789V2_cfg_t cfg0;
 extern PWM_cfg_t pwm_cfg;      // LED PWM control
 extern Buzzer_cfg_t buzzer_cfg; // Buzzer control
 
-// Frame rate for this game (in milliseconds)
-#define GAME1_FRAME_TIME_MS 30  // ~33 FPS
-
-// Grid organisation - rows and columns are those visible to player (fixed)
-/* about the LCD  coordinates
-(0,0) is the top right corner
-(240,240) is the bottom left
-grid will be 
-        column 1    column 2 ...    column 10
-row 1
-row 2
-...
-row 10
-*/
-#define VISIBLE_ROWS 8
-#define VISIBLE_COLUMNS 9 // odd number so can start in middle
-#define SCREEN_WIDTH  240
-#define SCREEN_HEIGHT 240
-
-// Colours
-#define COLOUR_BACKGROUND 3 // green
-#define COLOUR_WRITING 0 // black
-
 // enums
 static Game_State game_state;
-static Direction move_direction = CENTRE;
+static Direction player_direction = CENTRE;
 // structs
 static Player player;
-// const
-static const uint16_t row_height = SCREEN_HEIGHT / VISIBLE_ROWS;
-static const uint16_t column_width = SCREEN_WIDTH / VISIBLE_COLUMNS;
-static const uint16_t init_row = VISIBLE_ROWS - 2;
-static const uint16_t init_column = VISIBLE_COLUMNS / 2;
+extern Grid grid; // from Game1_funcs.c so don't have to keep passing over
 // variables
 static uint32_t frame_start = 0; // for HAL
-// can't make row positions constant while using for loop to assign, though they won't change
-static uint16_t row_midpoint[VISIBLE_ROWS];
-static uint16_t column_midpoint[VISIBLE_COLUMNS];
 
 MenuState Game1_Run(void) {
     Game1_Init();
@@ -86,15 +56,9 @@ MenuState Game1_Run(void) {
 /* Game Initialisation */
 void Game1_Init(void) {
     game_state = PLAYING;
-    // assign position coordinates - see grid organisation at top
-    for (int i = 0; i < VISIBLE_ROWS; i++) { // y coordinate of middle of rows
-        row_midpoint[i] = (row_height / 2) + (i * row_height);
-    }
-    for (int i = 0; i < VISIBLE_COLUMNS; i++) { // x coordinate of middle of columns
-        column_midpoint[i] = (column_width / 2) + (i * column_width);
-    }
+    grid_init(&grid);
     // player
-    player_init(&player, init_row, init_column, column_midpoint[init_column], row_midpoint[init_row], 0, 0, 0, 0);
+    player_init(&player);
 }
 
 /* Game Update */

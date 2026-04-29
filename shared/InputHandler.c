@@ -84,7 +84,7 @@ static uint32_t current_joystick_interrupt = 0;
 // allow "holding down" the joystick in one direction and moves forward in bursts (defined by JOYSTICK_DELAY)
 // also want to move faster than this if the joystick to returns to centre in between moves
 // I will call this "burst movement"
-Direction burstMove_get_direction(void) {
+Direction burstMove_getDirection(void) {
     current_joystick_interrupt = HAL_GetTick();
     // read current joystick input
     Joystick_Read(&joystick_cfg, &joystick_data);
