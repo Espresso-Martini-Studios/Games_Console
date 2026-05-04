@@ -28,10 +28,11 @@ static const int rows_back_max = ((BLOCK_SIZE + 1) * NUM_BACKWARDS_BLOCKS) - 1;
 
 /* Block generation */
 
-static const int max_trees = VISIBLE_COLUMNS / 2; // limit tree numbers to half a row
+static const int max_trees = (2 * VISIBLE_COLUMNS) / 3; // limit tree numbers to a third of a row
 static const int full_block_size = BLOCK_SIZE + 1; // block size *including* tree row
 
 static Block block_stack[NUM_BLOCKS]; // number of blocks loaded
+static int farthest_block = 0;
 static int current_block = 0;
 static int row_in_block = 0;
 static int next_block = 1;
@@ -74,9 +75,6 @@ void player_init(Player* player) {
 void player_coordinate (Player* player) {
     player->x = grid.column[player->column];
     player->y = grid.row[player->row];
-    // blocks repeat every NUM_BLOCKS - see block generation section
-    // player->block is furthest block traveled
-    player->block = (player->score / full_block_size) % NUM_BLOCKS;
 }
 
 void player_update(Player* player, Direction player_direction) {
@@ -97,8 +95,8 @@ void player_update(Player* player, Direction player_direction) {
             if ((row_in_block == 1) && (block_stack[current_block].tree_row[player->column] == 1)) {
                 break;
             }
-            // stop progress going negative or before BLOCK_SIZE*NUM_BACKWARDS_BLOCKS rows (note: slightly smaller than NUM_BACKWARDS_BLOCKS blocks due to BLOCK_SIZE not including tree row)
-            if ((player->progress > 0) && (player->progress > (player->score - (BLOCK_SIZE * NUM_BACKWARDS_BLOCKS)))) {
+            // stop progress going negative or furthest than the backwards limit
+            if ((player->progress > 0) && (player->progress > (player->score - rows_back_max))) {
                 player->progress--;
             }
             break;
@@ -151,15 +149,17 @@ void blockGen_init(void) {
     for (int i = 0; i < NUM_BLOCKS; i++) {
         generate_block(&block_stack[i]);
     }
-    // clear first tree row (starting point)
-    for (int i; i < VISIBLE_COLUMNS; i++) {
-        block_stack[0].tree_row[i] = 0;
-    }
+    // clear starting point of a tree
+    block_stack[0].tree_row[VISIBLE_COLUMNS / 2] = 0;
     // and clear row behind
-    block_stack[NUM_BLOCKS].type[BLOCK_SIZE - 1] = GREENSPACE;
+    block_stack[NUM_BLOCKS - 1].type[BLOCK_SIZE] = GREENSPACE;
 }
 
 void generate_block(Block* block) {
+    // reset tree row
+    for (int i = 0; i < VISIBLE_COLUMNS; i++) {
+        block->tree_row[i] = 0;
+    }
     // randomise number of trees for tree row
     int num_trees = rand() % (max_trees + 1);
     for (int i = 0; i < num_trees; i++) {
@@ -186,6 +186,20 @@ void generate_block(Block* block) {
     }
 }
 
+void update_blocks(Player* player) {
+    int prev_farthest_block = farthest_block;
+    farthest_block = (player->score / full_block_size) % NUM_BLOCKS;
+    current_block = (player->progress / full_block_size) % NUM_BLOCKS;
+    row_in_block = player->progress % full_block_size;
+    next_block = (current_block + 1) % NUM_BLOCKS;
+    prev_block = (current_block + 9) % NUM_BLOCKS;
+    // if we reach a new block, randomise block on other size of cyclic array
+    if (prev_farthest_block != farthest_block) {
+        generate_block(&block_stack[(farthest_block + (NUM_BLOCKS / 2)) % NUM_BLOCKS]);
+        // we now have infinite world generation
+    }
+}
+
 void road_draw(Block* block, int row) {
     LCD_Draw_Rect(0, row_topCoord[row], SCREEN_WIDTH, row_height, 0, 1);
 }
@@ -200,14 +214,7 @@ void treeRow_draw(Block* block, int row) {
 
 // only 50 (full_block_size * NUM_BLOCKS) rows loaded at once and NUM_BACKWARDS_BLOCKS is the block we started on
 void blocks_draw(Player* player) {
-    // player->block only means the furthest block traveled
-    // calculate current block (index for block_stack)
-    current_block = (player->progress / full_block_size) % NUM_BLOCKS;
-    row_in_block = player->progress % full_block_size;
-    next_block = (current_block + 1) % NUM_BLOCKS;
-    prev_block = (current_block + 9) % NUM_BLOCKS;
-    // note: calulate blocks behind with (current_block + NUM_BLOCKS - 1) % NUM_BLOCKS
-    // if we are in the first row of current_block, need to load the last row of the block before
+    // a few different cases to consider depending on how far along we are
     switch (row_in_block) {
         case 0: // last row of last block, tree row of this block, rest of this block
             // need to render last row of block behind

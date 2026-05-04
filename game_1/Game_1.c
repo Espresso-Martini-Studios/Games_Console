@@ -21,8 +21,6 @@ static Direction player_direction = CENTRE;
 // structs
 static Player player;
 // variables
-extern int current_block;
-extern int row_in_block;
 static uint32_t frame_start = 0; // for HAL
 
 MenuState Game1_Run(void) {
@@ -71,6 +69,7 @@ void Game1_Update(void) {
     Input_Read();
     player_direction = burstMove_getDirection();
     player_update(&player, player_direction);
+    update_blocks(&player);
     // Check if button was pressed to return to menu 
     if (current_input.btn3_pressed) {
         game_state = ENDED;

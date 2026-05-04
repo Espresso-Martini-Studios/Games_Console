@@ -58,7 +58,6 @@ typedef struct {
     // progress means how far along the sprite is (should equal score until moving backwards)
     int16_t progress;
     // store which block the player is currently on in block_stack
-    int16_t block;
     int16_t score;
 } Player;
 
@@ -106,6 +105,8 @@ typedef struct {
 void blockGen_init(void); // initialise block generation variables
 
 void generate_block(Block* block);
+
+void update_blocks(Player* player);
 
 void road_draw(Block* block, int row); // draw road (not cars... yet)
 
