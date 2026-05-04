@@ -32,6 +32,10 @@ static const int max_trees = VISIBLE_COLUMNS / 2; // limit tree numbers to half 
 static const int full_block_size = BLOCK_SIZE + 1; // block size *including* tree row
 
 static Block block_stack[NUM_BLOCKS]; // number of blocks loaded
+static int current_block = 0;
+static int row_in_block = 0;
+static int next_block = 1;
+static int prev_block = 10;
 
 /*
 Grid organisation (see h file)
@@ -78,6 +82,10 @@ void player_coordinate (Player* player) {
 void player_update(Player* player, Direction player_direction) {
     switch (player_direction) {
         case N: // forwards
+            // check for tree ahead
+            if ((row_in_block == BLOCK_SIZE) && (block_stack[next_block].tree_row[player->column] == 1)) {
+                break;
+            }
             // check not moved backwards (prevent score increase with back and forth movement)
             if (player->progress == player->score) {
                 player->score++;
@@ -85,22 +93,34 @@ void player_update(Player* player, Direction player_direction) {
             player->progress++;
             break;
         case S: // backwards
+            // check for tree behind
+            if ((row_in_block == 1) && (block_stack[current_block].tree_row[player->column] == 1)) {
+                break;
+            }
             // stop progress going negative or before BLOCK_SIZE*NUM_BACKWARDS_BLOCKS rows (note: slightly smaller than NUM_BACKWARDS_BLOCKS blocks due to BLOCK_SIZE not including tree row)
             if ((player->progress > 0) && (player->progress > (player->score - (BLOCK_SIZE * NUM_BACKWARDS_BLOCKS)))) {
                 player->progress--;
             }
             break;
         case E: // right
+            // check for tree to the right
+            if ((row_in_block == 0) && (block_stack[current_block].tree_row[player->column + 1] == 1)) {
+                break;
+            }
             if (player->column < (VISIBLE_COLUMNS - 1)) { // bounds check
                 player->column++;
             }
             break;
         case W: // left
+            // check for tree to the left
+            if ((row_in_block == 0) && (block_stack[current_block].tree_row[player->column - 1] == 1)) {
+                break;
+            }
             if (player->column > 0) { // bounds check
                 player->column--;
             }
             break;
-        default:
+        default: // centre
             break;    
     }
     player_coordinate(player);
@@ -170,21 +190,32 @@ void road_draw(Block* block, int row) {
     LCD_Draw_Rect(0, row_topCoord[row], SCREEN_WIDTH, row_height, 0, 1);
 }
 
+void treeRow_draw(Block* block, int row) {
+    for (int col = 0; col < VISIBLE_COLUMNS; col++) {
+        if (block->tree_row[col] == 1) {
+            LCD_Draw_Circle(grid.column[col], grid.row[row], 5, 15, 1);
+        }
+    }
+}
+
 // only 50 (full_block_size * NUM_BLOCKS) rows loaded at once and NUM_BACKWARDS_BLOCKS is the block we started on
 void blocks_draw(Player* player) {
     // player->block only means the furthest block traveled
     // calculate current block (index for block_stack)
-    int current_block = (player->progress / full_block_size) % NUM_BLOCKS;
-    int row_in_block = player->progress % full_block_size;
+    current_block = (player->progress / full_block_size) % NUM_BLOCKS;
+    row_in_block = player->progress % full_block_size;
+    next_block = (current_block + 1) % NUM_BLOCKS;
+    prev_block = (current_block + 9) % NUM_BLOCKS;
     // note: calulate blocks behind with (current_block + NUM_BLOCKS - 1) % NUM_BLOCKS
     // if we are in the first row of current_block, need to load the last row of the block before
     switch (row_in_block) {
         case 0: // last row of last block, tree row of this block, rest of this block
             // need to render last row of block behind
-            if (block_stack[current_block - 1].type[BLOCK_SIZE - 1] == ROAD) {
-                road_draw(&block_stack[current_block - 1], (VISIBLE_ROWS - 1));
+            if (block_stack[prev_block].type[BLOCK_SIZE - 1] == ROAD) {
+                road_draw(&block_stack[prev_block], (VISIBLE_ROWS - 1));
             }
-            // tree row of current_block - finish later
+            // tree row of current_block
+            treeRow_draw(&block_stack[current_block], (VISIBLE_ROWS - 2) + row_in_block);
             // render rest of current_block
             for (int i = 0; i < BLOCK_SIZE; i++) {
                 if (block_stack[current_block].type[i] == ROAD) {
@@ -193,10 +224,11 @@ void blocks_draw(Player* player) {
                     road_draw(&block_stack[current_block], (VISIBLE_ROWS - 3) - i);
                 }
             }
-            // don't render top row (title only)
+            // don't render top 2 rows (title only)
             break;
         case 1: // tree row of this block, rest of this block, tree row of next block
-            // tree row of current_block - finish later
+            // tree row of current_block
+            treeRow_draw(&block_stack[current_block], (VISIBLE_ROWS - 2) + row_in_block);
             // render rest of current_block
             for (int i = 0; i < BLOCK_SIZE; i++) {
                 if (block_stack[current_block].type[i] == ROAD) {
@@ -204,7 +236,8 @@ void blocks_draw(Player* player) {
                     road_draw(&block_stack[current_block], ((VISIBLE_ROWS - 3) - i) + row_in_block);
                 }
             }
-            // tree row of next block - finish later
+            // tree row of next block
+            treeRow_draw(&block_stack[next_block], row_in_block + 1);
             break;
         default: // rest of this block, tree row of next block, rest of next block
             // start i increasingly higher as we load less of the current block
@@ -213,10 +246,11 @@ void blocks_draw(Player* player) {
                     road_draw(&block_stack[current_block], ((VISIBLE_ROWS - 3) - i) + row_in_block);
                 }
             }
-            // tree row of next block - finish later
+            // tree row of next block
+            treeRow_draw(&block_stack[next_block], row_in_block + 1);
             // render rest of next block
             for (int i = 0; i < (row_in_block - 1); i++) {
-                if (block_stack[current_block + 1].type[i] == ROAD) {
+                if (block_stack[next_block].type[i] == ROAD) {
                     // ((VISIBLE_ROWS - 6) - i) starts on row 1, + (row_in_block - 2) increases start row as player moves forwards
                     // -i moves it up the screen
                     road_draw(&block_stack[current_block], ((VISIBLE_ROWS - 6) - i) + (row_in_block - 2));

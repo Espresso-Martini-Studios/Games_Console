@@ -30,6 +30,7 @@ row 2
 ...
 row 10
 */
+
 #define VISIBLE_ROWS 8
 #define VISIBLE_COLUMNS 9 // odd number so can start in middle
 #define SCREEN_WIDTH  240
@@ -107,6 +108,8 @@ void blockGen_init(void); // initialise block generation variables
 void generate_block(Block* block);
 
 void road_draw(Block* block, int row); // draw road (not cars... yet)
+
+void treeRow_draw(Block* block, int row);
 
 void blocks_draw(Player* player);
 

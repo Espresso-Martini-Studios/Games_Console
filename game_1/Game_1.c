@@ -9,6 +9,7 @@
 #include "stm32l4xx_hal.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/_intsup.h>
 
 extern ST7789V2_cfg_t cfg0;
 extern PWM_cfg_t pwm_cfg;      // LED PWM control
@@ -20,6 +21,8 @@ static Direction player_direction = CENTRE;
 // structs
 static Player player;
 // variables
+extern int current_block;
+extern int row_in_block;
 static uint32_t frame_start = 0; // for HAL
 
 MenuState Game1_Run(void) {
