@@ -19,7 +19,6 @@ static Game_State game_state;
 static Direction player_direction = CENTRE;
 // structs
 static Player player;
-extern Grid grid; // from Game1_funcs.c so don't have to keep passing over
 // variables
 static uint32_t frame_start = 0; // for HAL
 
@@ -56,9 +55,11 @@ MenuState Game1_Run(void) {
 /* Game Initialisation */
 void Game1_Init(void) {
     game_state = PLAYING;
-    grid_init(&grid);
+    grid_init();
     // player
     player_init(&player);
+    // block generation
+    blockGen_init();
 }
 
 /* Game Update */
@@ -86,7 +87,9 @@ void Game1_Render(void) {
     LCD_printString(score_text, 40, 220, COLOUR_WRITING, 1);
     
     // main game
+    blocks_draw(&player);
     player_draw(&player);
+
     // grid test ******************************
 /*
     for (int i = 0; i < sizeof(column_midpoint)/sizeof(column_midpoint[0]); i++) {

@@ -41,7 +41,7 @@ typedef struct {
     uint16_t column[VISIBLE_COLUMNS];
 } Grid;
 
-void grid_init(Grid* grid);
+void grid_init(void);
 
 /* Player section */
 
@@ -56,6 +56,8 @@ typedef struct {
     int16_t height;
     // progress means how far along the sprite is (should equal score until moving backwards)
     int16_t progress;
+    // store which block the player is currently on in block_stack
+    int16_t block;
     int16_t score;
 } Player;
 
@@ -66,5 +68,46 @@ void player_coordinate (Player* player);
 void player_update(Player* player, Direction player_direction);
 
 void player_draw(Player* player);
+
+/* Block generation */
+/*
+I don't want the game to freeze from loading new frames while on a road (as this would affect player experience more).
+Therefore, I will generate the world in blocks with the first row being a tree row and the others random
+*/
+
+
+#define BLOCK_SIZE 4 // number of rows after the tree row
+#define NUM_BLOCKS 10 // number of blocks loaded
+#define NUM_BACKWARDS_BLOCKS 2 // the blocks the player can travel backwards
+
+#define CAR_MAX_SPEED 2.0f // max pixels car travels per iteration
+
+typedef enum {
+    LEFT,
+    RIGHT
+} RowDirection;
+
+typedef enum {
+    GREENSPACE,
+    ROAD // add river eventually
+} RowType;
+
+typedef struct {
+    // first row will be the tree row
+    int tree_row[VISIBLE_COLUMNS]; // logical array for where trees are
+    // other rows will be roads, rivers, or greenspace
+    RowType type[BLOCK_SIZE];
+    RowDirection direction[BLOCK_SIZE];
+    float speed[BLOCK_SIZE]; // number of pixels per frame
+    int phase[BLOCK_SIZE]; // how far along the road compared to other cards
+} Block;
+
+void blockGen_init(void); // initialise block generation variables
+
+void generate_block(Block* block);
+
+void road_draw(Block* block, int row); // draw road (not cars... yet)
+
+void blocks_draw(Player* player);
 
 #endif
