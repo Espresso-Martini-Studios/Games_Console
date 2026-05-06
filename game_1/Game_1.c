@@ -1,5 +1,6 @@
 #include "Game_1.h"
 #include "Game1_funcs.h"
+#include "Game1_sprites.h"
 #include "InputHandler.h"
 #include "Joystick.h"
 #include "Menu.h"
@@ -64,6 +65,7 @@ void Game1_Init(void) {
     player_init(&player);
     // block generation
     blockGen_init();
+    sprites_init();
 }
 
 /* Game Update */
@@ -72,10 +74,10 @@ void Game1_Update(void) {
     Input_Read();
     player_direction = burstMove_getDirection();
     player_update(&player, player_direction);
-    update_blocks(&player);
     if (check_hit(&player)) {
         game_state = ENDED; // uses current_block and row_in_block calculated by update_blocks
     }
+    update_blocks(&player);
     update_objects(animation_counter++);
     // Check if button was pressed to return to menu 
     if (current_input.btn3_pressed) {

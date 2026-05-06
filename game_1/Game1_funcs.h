@@ -71,6 +71,8 @@ void player_coordinate (Player* player);
 
 void player_update(Player* player, Direction player_direction);
 
+int check_hit(Player* player); // check if the player is hit
+
 void player_draw(Player* player);
 
 /* Block generation */
@@ -112,9 +114,7 @@ void update_blocks(Player* player);
 
 void update_objects(int animation_counter);
 
-int check_hit(Player* player); // check if the player is hit
-
-void road_draw(uint16_t object_position, uint16_t row); // draw road (not cars... yet)
+void road_draw(uint16_t object_position, float velocity, uint16_t row); // draw road with cars
 
 void treeRow_draw(Block* block, uint16_t row);
 

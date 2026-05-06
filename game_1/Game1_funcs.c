@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <stdlib.h> // for rand()
 
+// VARIABLES, CONSTS AND STRUCTS
+
 /* Grid organisation */
 // note: ROW_HEIGHT and COLUMN_WIDTH declared in Game1_sprites.c
 
@@ -37,6 +39,20 @@ static int current_block = 0;
 static int row_in_block = 0;
 static int next_block = 1;
 static int prev_block = NUM_BLOCKS;
+
+
+//FUNCTIONS
+
+/*
+Sprites (create flipped versions - scaling doesn't go negative)
+*/
+void sprites_init(void) {
+    for (int row = 0; row < CAR_HEIGHT; row++) {
+        for (int col = 0; col < CAR_WIDTH; col++) {
+            CAR_SPRITE_FLIPPED[row][col] = CAR_SPRITE[row][(CAR_WIDTH - 1) - col];
+        }
+    }
+}
 
 /*
 Grid organisation (see h file)
@@ -121,6 +137,14 @@ void player_update(Player* player, Direction player_direction) {
             break;    
     }
     player_coordinate(player);
+}
+
+int check_hit(Player* player) {
+    // check x coordinates of player and object (account for sprite dimensions)
+    if ((block_stack[current_block].type[row_in_block - 1] == ROAD) && (block_stack[current_block].object_position[row_in_block - 1] < (player->x + PLAYER_WIDTH)) && ((block_stack[current_block].object_position[row_in_block - 1] + CAR_WIDTH) > player->x)) {
+        return 1;
+    }
+    else return 0;
 }
 
 void player_draw(Player* player) {
@@ -213,27 +237,6 @@ void update_objects(int animation_counter) {
     }
 }
 
-int check_hit(Player* player) {
-    // check x coordinates of player and object (account for sprite dimensions)
-    if ((block_stack[current_block].type[row_in_block - 1] == ROAD) && (block_stack[current_block].object_position[row_in_block - 1] < (player->x + PLAYER_WIDTH)) && ((block_stack[current_block].object_position[row_in_block - 1] + CAR_WIDTH) > player->x)) {
-        return 1;
-    }
-    else return 0;
-}
-
-void road_draw(uint16_t object_position, uint16_t row) {
-    LCD_Draw_Rect(0, grid.row[row], SCREEN_WIDTH, ROW_HEIGHT, 0, 1);
-    LCD_Draw_Sprite(object_position, grid.row[row], CAR_HEIGHT, CAR_WIDTH, (uint8_t*) CAR_SPRITE);
-}
-
-void treeRow_draw(Block* block, uint16_t row) {
-    for (int col = 0; col < VISIBLE_COLUMNS; col++) {
-        if (block->tree_row[col] == 1) {
-            LCD_Draw_Sprite(grid.column[col], grid.row[row], ROW_HEIGHT, COLUMN_WIDTH, (uint8_t*) TREE_SPRITE);
-        }
-    }
-}
-
 // only 50 (full_block_size * NUM_BLOCKS) rows loaded at once and NUM_BACKWARDS_BLOCKS is the block we started on
 void blocks_draw(Player* player) {
     // a few different cases to consider depending on how far along we are
@@ -241,7 +244,7 @@ void blocks_draw(Player* player) {
         case 0: // last row of last block, tree row of this block, rest of this block
             // need to render last row of block behind
             if (block_stack[prev_block].type[BLOCK_SIZE - 1] == ROAD) {
-                road_draw(block_stack[prev_block].object_position[BLOCK_SIZE - 1], (VISIBLE_ROWS - 1));
+                road_draw(block_stack[prev_block].object_position[BLOCK_SIZE - 1], block_stack[prev_block].velocity[BLOCK_SIZE - 1], (VISIBLE_ROWS - 1));
             }
             // tree row of current_block
             treeRow_draw(&block_stack[current_block], (VISIBLE_ROWS - 2) + row_in_block);
@@ -250,7 +253,7 @@ void blocks_draw(Player* player) {
                 if (block_stack[current_block].type[i] == ROAD) {
                     // first row = VISIBLE_ROWS, -1 due to indexing, -1 for row behind, -1 for tree row
                     // then increments down (closer to top of screen) as i increases
-                    road_draw(block_stack[current_block].object_position[i], (VISIBLE_ROWS - 3) - i);
+                    road_draw(block_stack[current_block].object_position[i], block_stack[current_block].velocity[i], (VISIBLE_ROWS - 3) - i);
                 }
             }
             // don't render top 2 rows (title only)
@@ -262,7 +265,7 @@ void blocks_draw(Player* player) {
             for (int i = 0; i < BLOCK_SIZE; i++) {
                 if (block_stack[current_block].type[i] == ROAD) {
                     // then as row_in_block increases we need to bring it further down so + row_in_block
-                    road_draw(block_stack[current_block].object_position[i], ((VISIBLE_ROWS - 3) - i) + row_in_block);
+                    road_draw(block_stack[current_block].object_position[i], block_stack[current_block].velocity[i], ((VISIBLE_ROWS - 3) - i) + row_in_block);
                 }
             }
             // tree row of next block
@@ -272,7 +275,7 @@ void blocks_draw(Player* player) {
             // start i increasingly higher as we load less of the current block
             for (int i = row_in_block - 2; i < BLOCK_SIZE; i++) {
                 if (block_stack[current_block].type[i] == ROAD) {
-                    road_draw(block_stack[current_block].object_position[i], ((VISIBLE_ROWS - 3) - i) + row_in_block);
+                    road_draw(block_stack[current_block].object_position[i], block_stack[current_block].velocity[i], ((VISIBLE_ROWS - 3) - i) + row_in_block);
                 }
             }
             // tree row of next block
@@ -282,9 +285,27 @@ void blocks_draw(Player* player) {
                 if (block_stack[next_block].type[i] == ROAD) {
                     // ((VISIBLE_ROWS - 6) - i) starts on row 1, + (row_in_block - 2) increases start row as player moves forwards
                     // -i moves it up the screen
-                    road_draw(block_stack[next_block].object_position[i], ((VISIBLE_ROWS - 6) - i) + (row_in_block - 2));
+                    road_draw(block_stack[next_block].object_position[i], block_stack[next_block].velocity[i], ((VISIBLE_ROWS - 6) - i) + (row_in_block - 2));
                 }
             }
             break;
+    }
+}
+
+void road_draw(uint16_t object_position, float velocity, uint16_t row) {
+    LCD_Draw_Rect(0, grid.row[row], SCREEN_WIDTH, ROW_HEIGHT, 0, 1);
+    if (velocity > 0) {
+        LCD_Draw_Sprite(object_position, grid.row[row], CAR_HEIGHT, CAR_WIDTH, (uint8_t*) CAR_SPRITE);
+    }
+    else { // opposite way so flip sprite (can't scale negative)
+        LCD_Draw_Sprite(object_position, grid.row[row], CAR_HEIGHT, CAR_WIDTH, (uint8_t*) CAR_SPRITE_FLIPPED);
+    }
+}
+
+void treeRow_draw(Block* block, uint16_t row) {
+    for (int col = 0; col < VISIBLE_COLUMNS; col++) {
+        if (block->tree_row[col] == 1) {
+            LCD_Draw_Sprite(grid.column[col], grid.row[row], ROW_HEIGHT, COLUMN_WIDTH, (uint8_t*) TREE_SPRITE);
+        }
     }
 }
