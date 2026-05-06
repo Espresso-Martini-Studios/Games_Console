@@ -37,6 +37,7 @@ MenuState Game1_Run(void) {
     buzzer_off(&buzzer_cfg);  // Stop the buzzer
     
     // main game loop
+    game_state = PLAYING;
     int game_loop = 1;
     while (game_loop) {
         switch (game_state) {
@@ -44,11 +45,14 @@ MenuState Game1_Run(void) {
                 Game1_Update();
                 Game1_Render();
                 break;
+            case HIT:
+                hit_menu();
+                break;
             case ENDED:
                 PWM_SetDuty(&pwm_cfg, 50);  // Reset LED to 50% when returning
                 exit_state = MENU_STATE_HOME; // safety line
-                game_loop = 0;
-                break;  // Exit game loop
+                game_loop = 0; // will break while statement
+                break;
             default:
                 break;
         }
@@ -59,6 +63,7 @@ MenuState Game1_Run(void) {
 
 /* Game Initialisation */
 void Game1_Init(void) {
+    animation_counter = 0;
     game_state = PLAYING;
     grid_init();
     // player
@@ -66,6 +71,8 @@ void Game1_Init(void) {
     // block generation
     blockGen_init();
     sprites_init();
+    update_blocks(&player);
+    update_objects(animation_counter++);
 }
 
 /* Game Update */
@@ -74,11 +81,12 @@ void Game1_Update(void) {
     Input_Read();
     player_direction = burstMove_getDirection();
     player_update(&player, player_direction);
-    if (check_hit(&player)) {
-        game_state = ENDED; // uses current_block and row_in_block calculated by update_blocks
-    }
     update_blocks(&player);
     update_objects(animation_counter++);
+    if (check_hit(&player)) {
+        game_state = HIT; // uses current_block and row_in_block calculated by update_blocks
+        return;
+    }
     // Check if button was pressed to return to menu 
     if (current_input.btn3_pressed) {
         game_state = ENDED;
@@ -90,12 +98,12 @@ void Game1_Render(void) {
     LCD_Fill_Buffer(COLOUR_BACKGROUND);
         
     // title
-    LCD_printString("CATTER", 60, 10, COLOUR_WRITING, 3);
+    LCD_printString("CATTER", 10, 10, COLOUR_WRITING, 3);
         
     // score
     char score_text[20];
     snprintf(score_text, sizeof(score_text), "Score: %u", player.score);
-    LCD_printString(score_text, 40, 220, COLOUR_WRITING, 1);
+    LCD_printString(score_text, 10, 35, COLOUR_WRITING, 2);
     
     // main game
     blocks_draw(&player);
@@ -117,4 +125,24 @@ void Game1_Render(void) {
     if (frame_time < GAME1_FRAME_TIME_MS) {
         HAL_Delay(GAME1_FRAME_TIME_MS - frame_time);
     }
+}
+
+void hit_menu(void) {
+    // render the menu
+    LCD_Fill_Buffer(0);
+    LCD_printString("CATTER", 10, 10, 2, 3);
+    LCD_printString("Cat has been hit!", 20, 50, 2, 2);
+    LCD_printString("Press Btn 3 to", 20, 100, 2, 2);
+    LCD_printString("return to main menu.", 20, 120, 2, 2);
+    LCD_Refresh(&cfg0);
+    int been_hit = 1;
+    while (been_hit) {
+        Input_Read();
+        if (current_input.btn3_pressed) {
+            Input_Read();
+            game_state = ENDED;
+            been_hit = 0;
+        }
+    }
+
 }

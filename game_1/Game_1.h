@@ -9,6 +9,7 @@
 typedef enum {
     GAME_MENU,
     PLAYING,
+    HIT,
     ENDED
 } Game_State;
 
@@ -28,6 +29,9 @@ typedef enum {
 void Game1_Init(void); // sets up game when opened
 void Game1_Update(void); // updates game states (score, position, etc.)
 void Game1_Render(void); // renders updates onto LCD buffer then refreshes
+
+// menu functions
+void hit_menu(void);
 
 MenuState Game1_Run(void);
 
