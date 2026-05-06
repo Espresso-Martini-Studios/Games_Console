@@ -180,7 +180,7 @@ void generate_block(Block* block) {
             // randomise everything else
             block->phase[i] = rand() % SCREEN_WIDTH;
             // allow for left direction with negative velocity
-            block->velocity[i] = ((float) (rand() - (RAND_MAX / 2)) / ((float) RAND_MAX / 2)) * CAR_MAX_VELOCITY;
+            block->velocity[i] = (CAR_MIN_VELOCITY + ((float) rand()  / (float) RAND_MAX)) * (CAR_MAX_VELOCITY / (CAR_MIN_VELOCITY + 1)) * (1.0f - 2.0f * (rand() % 2));
         }
     }
 }
@@ -213,9 +213,17 @@ void update_objects(int animation_counter) {
     }
 }
 
+int check_hit(Player* player) {
+    // check x coordinates of player and object (account for sprite dimensions)
+    if ((block_stack[current_block].type[row_in_block - 1] == ROAD) && (block_stack[current_block].object_position[row_in_block - 1] < (player->x + PLAYER_WIDTH)) && ((block_stack[current_block].object_position[row_in_block - 1] + CAR_WIDTH) > player->x)) {
+        return 1;
+    }
+    else return 0;
+}
+
 void road_draw(uint16_t object_position, uint16_t row) {
     LCD_Draw_Rect(0, grid.row[row], SCREEN_WIDTH, ROW_HEIGHT, 0, 1);
-    LCD_Draw_Rect(object_position, grid.row[row], CAR_WIDTH, CAR_HEIGHT, 7, 1);
+    LCD_Draw_Sprite(object_position, grid.row[row], CAR_HEIGHT, CAR_WIDTH, (uint8_t*) CAR_SPRITE);
 }
 
 void treeRow_draw(Block* block, uint16_t row) {

@@ -73,6 +73,9 @@ void Game1_Update(void) {
     player_direction = burstMove_getDirection();
     player_update(&player, player_direction);
     update_blocks(&player);
+    if (check_hit(&player)) {
+        game_state = ENDED; // uses current_block and row_in_block calculated by update_blocks
+    }
     update_objects(animation_counter++);
     // Check if button was pressed to return to menu 
     if (current_input.btn3_pressed) {

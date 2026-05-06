@@ -84,7 +84,8 @@ Therefore, I will generate the world in blocks with the first row being a tree r
 #define NUM_BLOCKS 10 // number of blocks loaded
 #define NUM_BACKWARDS_BLOCKS 2 // the blocks the player can travel backwards
 
-#define CAR_MAX_VELOCITY 2.0f // max pixels car travels per iteration
+#define CAR_MAX_VELOCITY 5.0f // max pixels car travels per iteration
+#define CAR_MIN_VELOCITY 1.0f
 #define CAR_HEIGHT ROW_HEIGHT
 #define CAR_WIDTH (COLUMN_WIDTH * 2)
 
@@ -110,6 +111,8 @@ void generate_block(Block* block);
 void update_blocks(Player* player);
 
 void update_objects(int animation_counter);
+
+int check_hit(Player* player); // check if the player is hit
 
 void road_draw(uint16_t object_position, uint16_t row); // draw road (not cars... yet)
 
