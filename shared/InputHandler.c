@@ -3,7 +3,7 @@
 #include "main.h"
 
 #define BTN_DEBOUNCING_DELAY 500
-#define JOYSTICK_DELAY 400
+#define JOYSTICK_DELAY 300
 
 /* Button input */
 

@@ -15,7 +15,7 @@
 // Frame rate for this game (in milliseconds)
 #define GAME1_FRAME_TIME_MS 30  // ~33 FPS
 // Colours
-#define COLOUR_BACKGROUND 3 // green
+#define COLOUR_BACKGROUND 10 // green
 #define COLOUR_WRITING 0 // black
 
 /* Grid organisation - rows and columns are those visible to player (fixed) */
@@ -35,6 +35,8 @@ row 10
 #define VISIBLE_COLUMNS 9 // odd number so can start in middle
 #define SCREEN_WIDTH  240
 #define SCREEN_HEIGHT 240
+#define ROW_HEIGHT (SCREEN_HEIGHT / VISIBLE_ROWS)
+#define COLUMN_WIDTH (SCREEN_WIDTH / VISIBLE_COLUMNS)
 
 // points on grid
 typedef struct {
@@ -46,19 +48,21 @@ void grid_init(void);
 
 /* Player section */
 
+#define PLAYER_WIDTH 20
+#define PLAYER_HEIGHT 24
+
 typedef struct {
     // need to use int16_t for LCD functions to work properly
     int16_t row;
     int16_t column;
     int16_t x;
     int16_t y;
-    // player dimensions
-    int16_t width;
-    int16_t height;
     // progress means how far along the sprite is (should equal score until moving backwards)
     int16_t progress;
-    // store which block the player is currently on in block_stack
+    // the farthest progress the player has made
     int16_t score;
+    // sprite image (added to struct in case we want animations)
+    uint8_t* sprite; // make pointer for memory purposes
 } Player;
 
 void player_init(Player* player);
@@ -80,12 +84,9 @@ Therefore, I will generate the world in blocks with the first row being a tree r
 #define NUM_BLOCKS 10 // number of blocks loaded
 #define NUM_BACKWARDS_BLOCKS 2 // the blocks the player can travel backwards
 
-#define CAR_MAX_SPEED 2.0f // max pixels car travels per iteration
-
-typedef enum {
-    LEFT,
-    RIGHT
-} RowDirection;
+#define CAR_MAX_VELOCITY 2.0f // max pixels car travels per iteration
+#define CAR_HEIGHT ROW_HEIGHT
+#define CAR_WIDTH (COLUMN_WIDTH * 2)
 
 typedef enum {
     GREENSPACE,
@@ -97,9 +98,9 @@ typedef struct {
     int tree_row[VISIBLE_COLUMNS]; // logical array for where trees are
     // other rows will be roads, rivers, or greenspace
     RowType type[BLOCK_SIZE];
-    RowDirection direction[BLOCK_SIZE];
-    float speed[BLOCK_SIZE]; // number of pixels per frame
+    float velocity[BLOCK_SIZE]; // number of pixels per frame
     int phase[BLOCK_SIZE]; // how far along the road compared to other cards
+    uint16_t object_position[BLOCK_SIZE]; // where the car is (phase * velocity)
 } Block;
 
 void blockGen_init(void); // initialise block generation variables
@@ -108,10 +109,12 @@ void generate_block(Block* block);
 
 void update_blocks(Player* player);
 
-void road_draw(Block* block, int row); // draw road (not cars... yet)
+void update_objects(int animation_counter);
 
-void treeRow_draw(Block* block, int row);
+void road_draw(uint16_t object_position, uint16_t row); // draw road (not cars... yet)
 
-void blocks_draw(Player* player);
+void treeRow_draw(Block* block, uint16_t row);
+
+void blocks_draw(Player* player); // includes object
 
 #endif

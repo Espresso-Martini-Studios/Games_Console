@@ -21,9 +21,12 @@ static Direction player_direction = CENTRE;
 // structs
 static Player player;
 // variables
+static int animation_counter = 0;
 static uint32_t frame_start = 0; // for HAL
 
 MenuState Game1_Run(void) {
+    // set colour palette
+    LCD_Set_Palette(PALETTE_VINTAGE);
     Game1_Init();
     MenuState exit_state = MENU_STATE_HOME;  // Default: return to menu
     
@@ -49,7 +52,7 @@ MenuState Game1_Run(void) {
                 break;
         }
     }
-
+    LCD_Set_Palette(PALETTE_DEFAULT);
     return exit_state;  // Tell main where to go next
 }
 
@@ -70,6 +73,7 @@ void Game1_Update(void) {
     player_direction = burstMove_getDirection();
     player_update(&player, player_direction);
     update_blocks(&player);
+    update_objects(animation_counter++);
     // Check if button was pressed to return to menu 
     if (current_input.btn3_pressed) {
         game_state = ENDED;

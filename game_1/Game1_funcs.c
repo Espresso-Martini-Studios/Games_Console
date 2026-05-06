@@ -4,6 +4,7 @@
 **/
 
 #include "Game1_funcs.h"
+#include "Game1_sprites.h"
 #include "InputHandler.h"
 #include "Joystick.h"
 #include "LCD.h"
@@ -12,46 +13,45 @@
 #include <stdlib.h> // for rand()
 
 /* Grid organisation */
+// note: ROW_HEIGHT and COLUMN_WIDTH declared in Game1_sprites.c
 
-static const uint16_t row_height = SCREEN_HEIGHT / VISIBLE_ROWS;
-static const uint16_t column_width = SCREEN_WIDTH / VISIBLE_COLUMNS;
-static uint16_t row_topCoord[VISIBLE_ROWS]; // top coordinate of rows
-
-static Grid grid; // midpoints on grid
+static Grid grid; // top left points of grid
+static Grid player_grid; // grid
 
 /* Player */
 
 Direction player_direction = CENTRE;
-
-// maximum rows the player can travel back (-1 to view the row behind the player)
-static const int rows_back_max = ((BLOCK_SIZE + 1) * NUM_BACKWARDS_BLOCKS) - 1;
+static const int player_space = COLUMN_WIDTH - PLAYER_WIDTH; // how much smaller the sprite is to the ROW_HEIGHT or COLUMN_WIDTH
 
 /* Block generation */
 
 static const int max_trees = (2 * VISIBLE_COLUMNS) / 3; // limit tree numbers to a third of a row
 static const int full_block_size = BLOCK_SIZE + 1; // block size *including* tree row
+static const int rows_back_max = ((BLOCK_SIZE + 1) * NUM_BACKWARDS_BLOCKS) - 1; // maximum rows the player can travel back (-1 to view the row behind the player)
+
+static const int car_loop_width = SCREEN_WIDTH + CAR_WIDTH;
 
 static Block block_stack[NUM_BLOCKS]; // number of blocks loaded
 static int farthest_block = 0;
 static int current_block = 0;
 static int row_in_block = 0;
 static int next_block = 1;
-static int prev_block = 10;
+static int prev_block = NUM_BLOCKS;
 
 /*
 Grid organisation (see h file)
 */
-
+// top left coordinate of all player points
 void grid_init(void) {
-    for (int i = 0; i < VISIBLE_ROWS; i++) { // y coordinate of middle of rows
-        grid.row[i] = (row_height / 2) + (i * row_height);
+    // account for player_space goes either side
+    int playerGrid_addition = player_space / 2;
+    for (int i = 0; i < VISIBLE_ROWS; i++) { // y coordinate of top of rows
+        grid.row[i] = i * ROW_HEIGHT;
+        player_grid.row[i] = grid.row[i] + playerGrid_addition;
     }
-    for (int i = 0; i < VISIBLE_COLUMNS; i++) { // x coordinate of middle of columns
-        grid.column[i] = (column_width / 2) + (i * column_width);
-    }
-    // assign top coordinate of rows
-    for (int i = 0; i < VISIBLE_ROWS; i++) {
-        row_topCoord[i] = i * row_height;
+    for (int i = 0; i < VISIBLE_COLUMNS; i++) { // x coordinate of left of columns
+        grid.column[i] = i * COLUMN_WIDTH;
+        player_grid.column[i] = grid.column[i] + playerGrid_addition;
     }
 }
 
@@ -64,17 +64,16 @@ Player
 void player_init(Player* player) {
     player->row = VISIBLE_ROWS - 2;
     player->column = VISIBLE_COLUMNS / 2;
-    player->width = 0;
-    player->height = 0;
     player->progress = 0;
     player->score = 0;
+    player->sprite = (uint8_t*) PLAYER_SPRITE; // need to convert to a "flat" uint8_t
     player_coordinate(player); // set x, y and block
 }
 
 // adjust x and y coordinates and current block based on changes to row, column or progress
 void player_coordinate (Player* player) {
-    player->x = grid.column[player->column];
-    player->y = grid.row[player->row];
+    player->x = player_grid.column[player->column];
+    player->y = player_grid.row[player->row];
 }
 
 void player_update(Player* player, Direction player_direction) {
@@ -125,18 +124,19 @@ void player_update(Player* player, Direction player_direction) {
 }
 
 void player_draw(Player* player) {
-    // just draw a circle for now - will make sprites later
-    LCD_Draw_Circle(player->x, player->y, 4, 1, 1);
+    LCD_Draw_Sprite(player->x, player->y, PLAYER_HEIGHT, PLAYER_WIDTH, player->sprite);
     return;
 }
 
 /*
 Block generation
-From a user standpoint, the world generates infinitely in chunks of fixed length ("blocks") with a tree row then further rows with roads or greenspace etc.
+From a user standpoint, the world generates infinitely in chunks of fixed length ("blocks") 
+with a tree row then further rows with roads or greenspace etc.
 The user should be able to travel backwards NUM_BACKWARDS_BLOCKS.
 
 The systems is based on a "block_stack" array of Block structs with NUM_BLOCKS blocks constantly loaded.
-The player's score position (the furthestpoint it reached) will always be on NUM_BACKWARDS_BLOCKS block to allow for moving backwards.
+The player's score position (the furthestpoint it reached) will always be on NUM_BACKWARDS_BLOCKS block 
+to allow for moving backwards.
 The player is stopped from moving backwards beyond this by player_update function.
 full_block_size is created because BLOCK_SIZE doesn't include the tree row.
 When score reaches a mutltiple of full_block_size,
@@ -172,16 +172,15 @@ void generate_block(Block* block) {
         if ((rand() % 4) == 0) {
             block->type[i] = GREENSPACE;
             // everything else is 0 (doesn't matter)
-            block->direction[i] = 0;
-            block->speed[i] = 0.0;
+            block->velocity[i] = 0.0;
             block->phase[i] = 0;
         }
         else {
             block->type[i] = ROAD;
             // randomise everything else
-            block->direction[i] = rand() % 2; // enumeration from 0
             block->phase[i] = rand() % SCREEN_WIDTH;
-            block->speed[i] = ((float) rand() / RAND_MAX) * CAR_MAX_SPEED;
+            // allow for left direction with negative velocity
+            block->velocity[i] = ((float) (rand() - (RAND_MAX / 2)) / ((float) RAND_MAX / 2)) * CAR_MAX_VELOCITY;
         }
     }
 }
@@ -200,14 +199,29 @@ void update_blocks(Player* player) {
     }
 }
 
-void road_draw(Block* block, int row) {
-    LCD_Draw_Rect(0, row_topCoord[row], SCREEN_WIDTH, row_height, 0, 1);
+ // move the cars along
+void update_objects(int animation_counter) {
+    for (int i = 0; i < NUM_BLOCKS; i++) {
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+            // some maths:
+            // object_position=(animation_counter+phase)*velocity
+            // % car_loop_width to make it cyclical; car_loop_width = SCREEN_WIDTH + CAR_WIDTH due to -CAR_WIDTH later, starts loop as 0 to SCREEN_WIDTH+CAR_WIDTH
+            // + car_loop_width) % car_loop_width to account for negatives
+            // - CAR_WIDTH so it will cycle from -CAR_WIDTH to SCREEN_WIDTH or reverse if negative velocity
+            block_stack[i].object_position[j] = (((((int) ((animation_counter + block_stack[i].phase[j]) * block_stack[i].velocity[j])) % car_loop_width) + car_loop_width) % car_loop_width) - CAR_WIDTH;
+        }
+    }
 }
 
-void treeRow_draw(Block* block, int row) {
+void road_draw(uint16_t object_position, uint16_t row) {
+    LCD_Draw_Rect(0, grid.row[row], SCREEN_WIDTH, ROW_HEIGHT, 0, 1);
+    LCD_Draw_Rect(object_position, grid.row[row], CAR_WIDTH, CAR_HEIGHT, 7, 1);
+}
+
+void treeRow_draw(Block* block, uint16_t row) {
     for (int col = 0; col < VISIBLE_COLUMNS; col++) {
         if (block->tree_row[col] == 1) {
-            LCD_Draw_Circle(grid.column[col], grid.row[row], 5, 15, 1);
+            LCD_Draw_Sprite(grid.column[col], grid.row[row], ROW_HEIGHT, COLUMN_WIDTH, (uint8_t*) TREE_SPRITE);
         }
     }
 }
@@ -219,7 +233,7 @@ void blocks_draw(Player* player) {
         case 0: // last row of last block, tree row of this block, rest of this block
             // need to render last row of block behind
             if (block_stack[prev_block].type[BLOCK_SIZE - 1] == ROAD) {
-                road_draw(&block_stack[prev_block], (VISIBLE_ROWS - 1));
+                road_draw(block_stack[prev_block].object_position[BLOCK_SIZE - 1], (VISIBLE_ROWS - 1));
             }
             // tree row of current_block
             treeRow_draw(&block_stack[current_block], (VISIBLE_ROWS - 2) + row_in_block);
@@ -228,7 +242,7 @@ void blocks_draw(Player* player) {
                 if (block_stack[current_block].type[i] == ROAD) {
                     // first row = VISIBLE_ROWS, -1 due to indexing, -1 for row behind, -1 for tree row
                     // then increments down (closer to top of screen) as i increases
-                    road_draw(&block_stack[current_block], (VISIBLE_ROWS - 3) - i);
+                    road_draw(block_stack[current_block].object_position[i], (VISIBLE_ROWS - 3) - i);
                 }
             }
             // don't render top 2 rows (title only)
@@ -240,7 +254,7 @@ void blocks_draw(Player* player) {
             for (int i = 0; i < BLOCK_SIZE; i++) {
                 if (block_stack[current_block].type[i] == ROAD) {
                     // then as row_in_block increases we need to bring it further down so + row_in_block
-                    road_draw(&block_stack[current_block], ((VISIBLE_ROWS - 3) - i) + row_in_block);
+                    road_draw(block_stack[current_block].object_position[i], ((VISIBLE_ROWS - 3) - i) + row_in_block);
                 }
             }
             // tree row of next block
@@ -250,7 +264,7 @@ void blocks_draw(Player* player) {
             // start i increasingly higher as we load less of the current block
             for (int i = row_in_block - 2; i < BLOCK_SIZE; i++) {
                 if (block_stack[current_block].type[i] == ROAD) {
-                    road_draw(&block_stack[current_block], ((VISIBLE_ROWS - 3) - i) + row_in_block);
+                    road_draw(block_stack[current_block].object_position[i], ((VISIBLE_ROWS - 3) - i) + row_in_block);
                 }
             }
             // tree row of next block
@@ -260,7 +274,7 @@ void blocks_draw(Player* player) {
                 if (block_stack[next_block].type[i] == ROAD) {
                     // ((VISIBLE_ROWS - 6) - i) starts on row 1, + (row_in_block - 2) increases start row as player moves forwards
                     // -i moves it up the screen
-                    road_draw(&block_stack[current_block], ((VISIBLE_ROWS - 6) - i) + (row_in_block - 2));
+                    road_draw(block_stack[next_block].object_position[i], ((VISIBLE_ROWS - 6) - i) + (row_in_block - 2));
                 }
             }
             break;
