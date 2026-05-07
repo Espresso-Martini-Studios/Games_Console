@@ -9,6 +9,7 @@
 #define GAME1_FUNCS_H
 
 #include <stdint.h>
+#include "Buzzer.h"
 #include "Utils.h"
 #include "Joystick.h"
 
@@ -17,6 +18,14 @@
 // Colours
 #define COLOUR_BACKGROUND 10 // green
 #define COLOUR_WRITING 0 // black
+// Sound effects
+#define MOVEMENT_PITCH 400 // Hz
+#define MOVEMENT_VOLUME 2
+#define HIT_PITCH 2000 // Hz
+#define HIT_VOLUME 80
+
+/* Music */
+void play_noise(int frequency, int volume);
 
 /* Grid organisation - rows and columns are those visible to player (fixed) */
 /*  about the LCD  coordinates:

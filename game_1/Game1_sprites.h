@@ -5,6 +5,9 @@
 #include "Game1_funcs.h"
 #include <stdint.h>
 #include <sys/types.h>
+
+extern const uint8_t archie_grave[32*32];
+
 static const uint8_t PLAYER_SPRITE[PLAYER_HEIGHT][PLAYER_WIDTH] = {
     {255, 255, 6, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 6, 255, 255},
     {255, 255, 6, 6, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 6, 6, 255, 255},

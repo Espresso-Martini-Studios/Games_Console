@@ -8,9 +8,12 @@
 #include "InputHandler.h"
 #include "Joystick.h"
 #include "LCD.h"
+#include "Buzzer.h"
 #include "stm32l4xx_hal.h"
 #include <stdint.h>
 #include <stdlib.h> // for rand()
+
+extern Buzzer_cfg_t buzzer_cfg; // Buzzer control
 
 // VARIABLES, CONSTS AND STRUCTS
 
@@ -42,6 +45,19 @@ static int prev_block = NUM_BLOCKS;
 
 
 //FUNCTIONS
+
+/*
+Sound effects
+The HAL can't be delayed as its used by input and update_objects. Need to handle sound effects differently.
+Can use the HAL timers for a seperate delay - lets use TIM6 as defined in main.c
+*/
+extern volatile uint32_t g_tim6_ticks;
+extern uint32_t buzzer_stop_tick = 0;
+
+void play_noise(int frequency, int volume) {
+    buzzer_tone(&buzzer_cfg, frequency, volume);
+    buzzer_stop_tick = g_tim6_ticks + 1; // g_tim6_ticks increments every 10ms, thus will equal stop tick then
+}
 
 /*
 Sprites (create flipped versions - scaling doesn't go negative)
@@ -104,6 +120,7 @@ void player_update(Player* player, Direction player_direction) {
                 player->score++;
             }
             player->progress++;
+            play_noise(MOVEMENT_PITCH, MOVEMENT_VOLUME);
             break;
         case S: // backwards
             // check for tree behind
@@ -113,6 +130,7 @@ void player_update(Player* player, Direction player_direction) {
             // stop progress going negative or furthest than the backwards limit
             if ((player->progress > 0) && (player->progress > (player->score - rows_back_max))) {
                 player->progress--;
+                play_noise(MOVEMENT_PITCH, MOVEMENT_VOLUME);
             }
             break;
         case E: // right
@@ -122,6 +140,7 @@ void player_update(Player* player, Direction player_direction) {
             }
             if (player->column < (VISIBLE_COLUMNS - 1)) { // bounds check
                 player->column++;
+                play_noise(MOVEMENT_PITCH, MOVEMENT_VOLUME);
             }
             break;
         case W: // left
@@ -131,6 +150,7 @@ void player_update(Player* player, Direction player_direction) {
             }
             if (player->column > 0) { // bounds check
                 player->column--;
+                play_noise(MOVEMENT_PITCH, MOVEMENT_VOLUME);
             }
             break;
         default: // centre
